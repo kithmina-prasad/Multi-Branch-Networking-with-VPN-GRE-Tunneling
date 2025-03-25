@@ -1,0 +1,120 @@
+
+Router>enable
+Router#configure terminal
+Router(config)#hostname KBR
+KBR(config)#banner motd *
+
+#################################################
+This is Secure area. Please enter your Authentication.
+#################################################
+
+*
+
+KBR(config)#interface GigaBitEthernet0/0/0
+KBR(config-if)#description SW-06-Link
+KBR(config-if)#ip address 172.16.3.126 255.255.255.192
+KBR(config-if)#ip helper-address 172.16.3.194
+KBR(config-if)#no shutdown
+KBR(config-if)#exit
+
+KBR(config)#interface GigaBitEthernet0/0/1
+KBR(config-if)#description SW-07-Link
+KBR(config-if)#ip address 172.16.2.254 255.255.255.128
+KBR(config-if)#ip helper-address 172.16.3.194
+KBR(config-if)#no shutdown
+KBR(config-if)#exit
+
+KBR(config)#interface Serial0/1/1
+KBR(config-if)#description ISP-Link
+KBR(config-if)#ip address 100.100.100.6 255.255.255.252
+KBR(config-if)#no shutdown
+KBR(config-if)#exit
+
+KBR(config)#enable secret Prasad@2024.lk
+KBR(config)#line console 0
+KBR(config-line)#password pRasad@22024.lk
+KBR(config-line)#login
+KBR(config-line)#exec-timeout 15 0
+KBR(config-line)#exit
+
+KBR(config)#ip domain-name cisco.lk
+KBR(config)#crypto key generate rsa general-key modulus 1024
+KBR(config)#username Admin secret PRasad@Ssh.lk
+KBR(config)#line vty 0 4
+KBR(config-line)#exec-timeout 15 0
+KBR(config-line)#transport input ssh
+KBR(config-line)#login local
+KBR(config-line)#exit
+KBR(config)#ip ssh version 2
+
+KBR(config)#service password-encryption
+KBR(config)#security password min-length 8
+KBR(config)#login block-for 300 attempts 2 within 60
+
+KBR(config)#logging host 172.16.0.1
+KBR(config)#logging on
+KBR(config)#logging buffered
+KBR(config)#logging console
+KBR(config)#logging trap
+KBR(config)#logging userinfo
+KBR(config)#service timestamps log datetime msec
+
+KBR(config)#ntp server 172.16.3.194
+KBR(config)#ntp trusted-key 2
+KBR(config)#ntp authentication-key 2 md5 cisco123
+KBR(config)#ntp update-calendar
+
+KBR(config)#router rip
+KBR(config-router)#version 2
+KBR(config-router)#network 172.16.3.64
+KBR(config-router)#network 172.16.2.128
+KBR(config-router)#network 172.17.1.0
+KBR(config-router)#network 172.17.2.0
+KBR(config-router)#no auto-summary
+KBR(config-router)#exit
+
+KBR(config)#ip route 172.16.2.0 255.255.255.128 100.100.100.5 121
+KBR(config)#ip route 172.16.1.0 255.255.255.0 100.100.100.5 121
+KBR(config)#ip route 172.16.3.128 255.255.255.192 100.100.100.5 121
+KBR(config)#ip route 172.16.4.32 255.255.255.224 100.100.100.5 121
+KBR(config)#ip route 172.16.4.0 255.255.255.224 100.100.100.5 121
+KBR(config)#ip route 172.16.4.64 255.255.255.224 100.100.100.5 121
+KBR(config)#ip route 172.16.4.96 255.255.255.240 100.100.100.5 121
+KBR(config)#ip route 172.16.3.0 255.255.255.192 100.100.100.5 121
+KBR(config)#ip route 172.16.3.192 255.255.255.192 100.100.100.5 121
+KBR(config)#ip route 172.16.0.0 255.255.255.0 100.100.100.5 121
+KBR(config)#ip route 100.100.100.8 255.255.255.252 100.100.100.5 121
+KBR(config)#ip route 172.16.4.112 255.255.255.252 100.100.100.5 121
+KBR(config)#ip route 172.16.4.116 255.255.255.252 100.100.100.5 121
+KBR(config)#ip route 100.100.100.0 255.255.255.0 100.100.100.5 121
+
+KBR(config)#interface tunnel 0
+KBR(config-if)#ip address 172.17.1.2 255.255.255.252
+KBR(config-if)#tunnel source Serial0/1/1
+KBR(config-if)#tunnel destination 100.100.100.2
+KBR(config-if)#no shutdown
+KBR(config-if)#exit
+
+KBR(config)#interface tunnel 1
+KBR(config-if)#ip address 172.17.2.1 255.255.255.252
+KBR(config-if)#tunnel source Serial0/1/1
+KBR(config-if)#tunnel destination 100.100.100.10
+KBR(config-if)#no shutdown
+KBR(config-if)#exit
+
+KBR(config)#access-list 101 remark Every Branchs network users cannot ping server network But they can access all services
+KBR(config)#access-list 101 deny icmp any 172.16.3.192 0.0.0.63 echo
+KBR(config)#access-list 101 deny icmp any 172.16.0.0 0.0.0.255 echo
+KBR(config)#access-list 101 permit ip any any
+
+KBR(config)#interface GigaBitEthernet0/0/0
+KBR(config-if)#ip access-group 101 in
+KBR(config-if)#exit
+
+KBR(config)#interface GigaBitEthernet0/0/1
+KBR(config-if)#ip access-group 101 in
+KBR(config-if)#exit
+
+KBR#copy running-config startup-config
+KBR#copy startup-config tftp
+

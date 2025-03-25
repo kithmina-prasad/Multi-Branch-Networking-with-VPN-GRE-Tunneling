@@ -1,0 +1,137 @@
+Router>enable
+Router#configure terminal
+Router(config)#hostname CBR
+CBR(config)#banner motd *
+
+#################################################
+This is Secure area. Please enter your Authentication.
+#################################################
+
+*
+
+CBR(config)#interface Serial0/1/1
+CBR(config-if)#description C-02-Link
+CBR(config-if)#ip address 172.16.4.117 255.255.255.252
+CBR(config-if)#no shutdown
+CBR(config-if)#exit
+
+CBR(config)#interface Serial0/1/0
+CBR(config-if)#description ISP-Link
+CBR(config-if)#ip address 100.100.100.2 255.255.255.252
+CBR(config-if)#no shutdown
+CBR(config-if)#exit
+
+CBR(config)#interface GigaBitEthernet0/0/0
+CBR(config-if)#description SW-04-Link
+CBR(config-if)#ip address 172.16.3.62 255.255.255.192
+CBR(config-if)#ip helper-address 172.16.3.194
+CBR(config-if)#no shutdown
+CBR(config-if)#exit
+
+CBR(config)#interface GigaBitEthernet0/0/1
+CBR(config-if)#description SW-05-Main-Link
+CBR(config-if)#no ip address
+CBR(config-if)#no shutdown
+CBR(config-if)#exit
+
+CBR(config)#interface GigaBitEthernet0/0/1.2
+CBR(config-subif)#encapsulation dot1Q 2
+CBR(config-subif)#description Admin-Segment
+CBR(config-subif)#ip address 172.16.3.254 255.255.255.192
+CBR(config-subif)#no shutdown
+CBR(config-subif)#exit
+
+CBR(config)#interface GigaBitEthernet0/0/1.3
+CBR(config-subif)#encapsulation dot1Q 3
+CBR(config-subif)#description Server-Segment
+CBR(config-subif)#ip address 172.16.0.254 255.255.255.0
+CBR(config-subif)#no shutdown
+CBR(config-subif)#exit
+
+CBR(config)#enable secret Prasad@2024.lk
+CBR(config)#line console 0
+CBR(config-line)#password pRasad@22024.lk
+CBR(config-line)#login
+CBR(config-line)#exec-timeout 15 0
+CBR(config-line)#exit
+
+CBR(config)#ip domain-name cisco.lk
+CBR(config)#crypto key generate rsa general-key modulus 1024
+CBR(config)#username Admin secret PRasad@Ssh.lk
+CBR(config)#line vty 0 4
+CBR(config-line)#exec-timeout 15 0
+CBR(config-line)#transport input ssh
+CBR(config-line)#login local
+CBR(config-line)#exit
+CBR(config)#ip ssh version 2
+
+CBR(config)#service password-encryption
+CBR(config)#security password min-length 8
+CBR(config)#login block-for 300 attempts 2 within 60
+
+CBR(config)#logging host 172.16.0.1
+CBR(config)#logging on
+CBR(config)#logging buffered
+CBR(config)#logging console
+CBR(config)#logging trap
+CBR(config)#logging userinfo
+CBR(config)#service timestamps log datetime msec
+
+CBR(config)#ntp server 172.16.3.194
+CBR(config)#ntp trusted-key 2
+CBR(config)#ntp authentication-key 2 md5 cisco123
+CBR(config)#ntp update-calendar
+
+CBR(config)#router rip
+CBR(config-router)#version 2
+CBR(config-router)#network 172.16.3.192
+CBR(config-router)#network 172.16.0.0
+CBR(config-router)#network 172.16.3.0
+CBR(config-router)#network 172.16.4.116
+CBR(config-router)#network 172.17.1.0
+CBR(config-router)#network 172.17.3.0
+CBR(config-router)#no auto-summary
+CBR(config-router)#exit
+
+CBR(config)#ip route 172.16.3.64 255.255.255.192 100.100.100.1 121
+CBR(config)#ip route 172.16.2.128 255.255.255.128 100.100.100.1 121
+CBR(config)#ip route 172.16.2.0 255.255.255.128 100.100.100.1 121
+CBR(config)#ip route 172.16.1.0 255.255.255.0 100.100.100.1 121
+CBR(config)#ip route 100.100.100.4 255.255.255.252 100.100.100.1 121
+CBR(config)#ip route 100.100.100.8 255.255.255.252 100.100.100.1 121
+
+CBR(config)#interface tunnel 0
+CBR(config-if)#ip address 172.16.1.1 255.255.255.252
+CBR(config-if)#tunnel source Serial0/1/0
+CBR(config-if)#tunnel destination 100.100.100.6
+CBR(config-if)#no shutdown
+CBR(config-if)#exit
+
+CBR(config)#interface tunnel 2
+CBR(config-if)#ip address 172.17.3.1 255.255.255.252
+CBR(config-if)#tunnel source Serial0/1/0
+CBR(config-if)#tunnel destination 100.100.100.10
+CBR(config-if)#no shutdown
+CBR(config-if)#exit
+
+CBR(config)#access-list 101 remark Every Branchs network users cannot ping server network But they can access all services
+CBR(config)#access-list 101 deny icmp any 172.16.3.192 0.0.0.63 echo
+CBR(config)#access-list 101 deny icmp any 172.16.0.0 0.0.0.255 echo
+CBR(config)#access-list 101 permit ip any any
+
+CBR(config)#interface GigaBitEthernet0/0/0
+CBR(config-if)#ip access-group 101 in
+CBR(config-if)#exit
+
+CBR(config)#access-list 102 remark  Probodha Silva cannot access only web service
+CBR(config)#access-list 102 deny tcp host 172.16.3.11 any eq www
+CBR(config)#access-list 102 deny tcp host 172.16.3.11 any eq 80
+CBR(config)#access-list 102 deny tcp host 172.16.3.11 any eq 443
+CBR(config)#access-list 102 permit ip any any
+
+CBR(config)#interface GigaBitEthernet0/0/0
+CBR(config-if)#ip access-group 102 in
+CBR(config-if)#exit
+
+CBR#copy running-config startup-config
+CBR#copy startup-config tftp

@@ -1,0 +1,138 @@
+Router>enable
+Router#configure terminal
+Enter configuration commands, one per line.  End with CNTL/Z.
+Router(config)#hostname C-02
+C-02(config)#banner motd *
+Enter TEXT message.  End with the character '*'.
+
+#################################################
+This is Secure area. Please enter your Authentication.
+#################################################
+
+*
+
+C-02(config)#interface Serial0/1/0 
+C-02(config-if)#description C-01-Link
+C-02(config-if)#clock rate 64000
+C-02(config-if)#ip address 172.16.4.114 255.255.255.252
+C-02(config-if)#no shutdown
+C-02(config-if)#exit
+
+C-02(config)#interface Serial0/1/1
+C-02(config-if)#description CBR-Link
+C-02(config-if)#clock rate 64000
+C-02(config-if)#ip address 172.16.4.118 255.255.255.252
+C-02(config-if)#no shutdown
+C-02(config-if)#exit
+
+
+C-02(config)#interface GigaBitEthernet0/0/0
+C-02(config-if)#description SW-Main-Link
+C-02(config-if)#no ip address
+C-02(config-if)#no shutdown
+C-02(config-if)#exit
+
+C-02(config)#interface GigaBitEthernet0/0/0.2
+C-02(config-subif)#encapsulation dot1Q 2
+C-02(config-subif)#description CCNA
+C-02(config-subif)#ip address 172.16.4.30 255.255.255.224
+C-02(config-subif)#ip helper-address 172.16.3.194
+C-02(config-subif)#no shutdown
+C-02(config-subif)#exit
+
+C-02(config)#interface GigaBitEthernet0/0/0.3
+C-02(config-subif)#encapsulation dot1Q 3
+C-02(config-subif)#description CCNP
+C-02(config-subif)#ip address 172.16.4.94 255.255.255.224
+C-02(config-subif)#ip helper-address 172.16.3.194
+C-02(config-subif)#no shutdown
+C-02(config-subif)#exit
+
+C-02(config)#interface GigaBitEthernet0/0/0.4
+C-02(config-subif)#encapsulation dot1Q 4
+C-02(config-subif)#description CCIE
+C-02(config-subif)#ip address 172.16.4.110 255.255.255.240
+C-02(config-subif)#ip helper-address 172.16.3.194
+C-02(config-subif)#no shutdown
+C-02(config-subif)#exit
+
+C-02(config)#enable secret Prasad@2024.lk
+C-02(config)#line console 0
+C-02(config-line)#password pRasad@22024.lk
+C-02(config-line)#login
+C-02(config-line)#exec-timeout 15 0
+C-02(config-line)#exit
+
+C-02(config)#ip domain-name cisco.lk
+C-02(config)#crypto key generate rsa general-key modulus 1024
+C-02(config)#username Admin secret PRasad@Ssh.lk
+C-02(config)#line vty 0 4
+C-02(config-line)#exec-timeout 15 0
+C-02(config-line)#transport input ssh
+C-02(config-line)#login local
+C-02(config-line)#exit
+C-02(config)#ip ssh version 2
+
+C-02(config)#service password-encryption
+C-02(config)#security password min-length 8
+C-02(config)#login block-for 300 attempts 2 within 60
+
+C-02(config)#logging host 172.16.0.1
+C-02(config)#logging on
+C-02(config)#logging buffered
+C-02(config)#logging console
+C-02(config)#logging trap
+C-02(config)#logging userinfo
+C-02(config)#service timestamps log datetime msec
+
+C-02(config)#ntp server 172.16.3.194
+C-02(config)#ntp trusted-key 2
+C-02(config)#ntp authentication-key 2 md5 cisco123
+C-02(config)#ntp update-calendar
+
+C-02(config)#router rip
+C-02(config-router)#version 2
+C-02(config-router)#passive-interface GigaBitEthernet0/0/0
+C-02(config-router)#network 172.16.4.112
+C-02(config-router)#network 172.16.4.116
+C-02(config-router)#network 172.16.4.0
+C-02(config-router)#network 172.16.4.64
+C-02(config-router)#network 172.16.4.96
+C-02(config-router)#no auto-summary
+C-02(config-router)#exit
+
+C-02(config)#access-list 101 remark Every Branchs network users cannot ping server network But they can access all services
+C-02(config)#access-list 101 deny icmp any 172.16.3.192 0.0.0.63 echo
+C-02(config)#access-list 101 deny icmp any 172.16.0.0 0.0.0.255 echo
+C-02(config)#access-list 101 permit ip any any
+
+C-02(config)#interface GigaBitEthernet0/0/0.2
+C-02(config-subif)#ip access-group 101 in
+C-02(config-subif)#exit
+
+C-02(config)#interface GigaBitEthernet0/0/0.3
+C-02(config-subif)#ip access-group 101 in
+C-02(config-subif)#exit
+
+C-02(config)#interface GigaBitEthernet0/0/0.4
+C-02(config-subif)#ip access-group 101 in
+C-02(config-subif)#exit
+
+C-02(config)#access-list 1 remark SW-01 network cannot access SW-03 and SW-03-1 network
+C-02(config)#access-list 1 deny 172.16.3.128 0.0.0.63
+C-02(config)#access-list 1 permit any
+
+C-02(config)#interface GigaBitEthernet0/0/0.2
+C-02(config-subif)#ip access-group 1 out
+C-02(config-subif)#exit
+
+C-02(config)#interface GigaBitEthernet0/0/0.3
+C-02(config-subif)#ip access-group 1 out
+C-02(config-subif)#exit
+
+C-02(config)#interface GigaBitEthernet0/0/0.4
+C-02(config-subif)#ip access-group 1 out
+C-02(config-subif)#exit
+
+C-02#copy running-config startup-config
+C-02#copy startup-config tftp

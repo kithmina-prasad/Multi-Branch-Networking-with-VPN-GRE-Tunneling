@@ -1,0 +1,99 @@
+Router>enable
+Router#configure terminal
+Router(config)#hostname C-01
+C-01(config)#banner motd *
+
+#################################################
+This is Secure area. Please enter your Authentication.
+#################################################
+
+*
+
+C-01(config)#interface GigaBitEthernet0/0/0
+C-01(config-if)#description SW-01-Link
+C-01(config-if)#ip address 172.16.3.190 255.255.255.192
+C-01(config-if)#ip helper-address 172.16.3.194
+C-01(config-if)#no shutdown
+C-01(config-if)#exit
+
+C-01(config)#interface GigaBitEthernet0/0/1
+C-01(config-if)#description SW-02-Link
+C-01(config-if)#ip address 172.16.4.62 255.255.255.224
+C-01(config-if)#ip helper-address 172.16.3.194
+C-01(config-if)#no shutdown
+C-01(config-if)#exit
+
+C-01(config)#interface Serial0/1/0
+C-01(config-if)#description C-02-Link
+C-01(config-if)#ip address 172.16.4.113 255.255.255.252
+C-01(config-if)#no shutdown
+C-01(config-if)#exit
+
+C-01(config)#enable secret Prasad@2024.lk
+C-01(config)#line console 0
+C-01(config-line)#password pRasad@22024.lk
+C-01(config-line)#login
+C-01(config-line)#exec-timeout 15 0
+C-01(config-line)#exit
+
+C-01(config)#ip domain-name cisco.lk
+C-01(config)#crypto key generate rsa general-key modulus 1024
+C-01(config)#username Admin secret PRasad@Ssh.lk
+C-01(config)#line vty 0 4
+C-01(config-line)#exec-timeout 15 0
+C-01(config-line)#transport input ssh
+C-01(config-line)#login local
+C-01(config-line)#exit
+C-01(config)#ip ssh version 2
+
+C-01(config)#service password-encryption
+C-01(config)#security password min-length 8
+C-01(config)#login block-for 300 attempts 2 within 60
+
+C-01(config)#logging host 172.16.0.1
+C-01(config)#logging on
+C-01(config)#logging buffered
+C-01(config)#logging console
+C-01(config)#logging trap
+C-01(config)#logging userinfo
+C-01(config)#service timestamps log datetime msec
+
+C-01(config)#ntp server 172.16.3.194
+C-01(config)#ntp trusted-key 2
+C-01(config)#ntp authentication-key 2 md5 cisco123
+C-01(config)#ntp update-calendar
+
+C-01(config)#router rip
+C-01(config-router)#version 2
+C-01(config-router)#passive-interface GigaBitEthernet0/0/0
+C-01(config-router)#passive-interface GigaBitEthernet0/0/1
+C-01(config-router)#network 172.16.3.128
+C-01(config-router)#network 172.16.4.32
+C-01(config-router)#network 172.16.4.112
+C-01(config-router)#no auto-summary
+C-01(config-router)#exit
+
+C-01(config)#access-list 101 remark Every Branchs network users cannot ping server network But they can access all services
+C-01(config)#access-list 101 deny icmp any 172.16.3.192 0.0.0.63 echo
+C-01(config)#access-list 101 deny icmp any 172.16.0.0 0.0.0.255 echo
+C-01(config)#access-list 101 permit ip any any
+
+C-01(config)#interface GigaBitEthernet0/0/0
+C-01(config-if)#ip access-group 101 in
+C-01(config-if)#exit
+
+C-01(config)#interface GigaBitEthernet0/0/1
+C-01(config-if)#ip access-group 101 in
+C-01(config-if)#exit
+
+C-01(config)#access-list 120 remark SW-01 network cannot access SW-03 and SW-03-1 network
+C-01(config)#access-list 120 deny ip 172.16.3.128 0.0.0.63 172.16.4.0 0.0.0.31
+C-01(config)#access-list 120 deny ip 172.16.3.128 0.0.0.63 172.16.4.64 0.0.0.31
+C-01(config)#access-list 120 deny ip 172.16.3.128 0.0.0.63 172.16.4.96 0.0.0.15
+
+C-01(config)#interface GigaBitEthernet0/0/0
+C-01(config-if)#ip access-group 120 in
+C-01(config-if)#exit
+
+C-01#copy running-config startup-config
+C-01#copy startup-config tftp

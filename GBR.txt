@@ -1,0 +1,118 @@
+Router>enable
+Router#configure terminal
+Router(config)#hostname GBR
+GBR(config)#banner motd *
+
+#################################################
+This is Secure area. Please enter your Authentication.
+#################################################
+
+*
+
+GBR(config)#interface GigaBitEthernet0/0/0
+GBR(config-if)#description SW-08-Link
+GBR(config-if)#ip address 172.16.2.126 255.255.255.128
+GBR(config-if)#ip helper-address 172.16.3.194
+GBR(config-if)#no shutdown
+GBR(config-if)#exit
+
+GBR(config)#interface GigaBitEthernet0/0/1
+GBR(config-if)#description SW-09-Link
+GBR(config-if)#ip address 172.16.1.254 255.255.255.0
+GBR(config-if)#ip helper-address 172.16.3.194
+GBR(config-if)#no shutdown
+GBR(config-if)#exit
+
+GBR(config)#interface Serial0/2/0
+GBR(config-if)#description ISP-Link
+GBR(config-if)#ip address 100.100.100.10 255.255.255.252
+GBR(config-if)#no shutdown
+GBR(config-if)#exit
+
+GBR(config)#enable secret Prasad@2024.lk
+GBR(config)#line console 0
+GBR(config-line)#password pRasad@22024.lk
+GBR(config-line)#login
+GBR(config-line)#exec-timeout 15 0
+GBR(config-line)#exit
+
+GBR(config)#ip domain-name cisco.lk
+GBR(config)#crypto key generate rsa general-key modulus 1024
+GBR(config)#username Admin secret PRasad@Ssh.lk
+GBR(config)#line vty 0 4
+GBR(config-line)#exec-timeout 15 0
+GBR(config-line)#transport input ssh
+GBR(config-line)#login local
+GBR(config-line)#exit
+GBR(config)#ip ssh version 2
+
+GBR(config)#service password-encryption
+GBR(config)#security password min-length 8
+GBR(config)#login block-for 300 attempts 2 within 60
+
+GBR(config)#logging host 172.16.0.1
+GBR(config)#logging on
+GBR(config)#logging buffered
+GBR(config)#logging console
+GBR(config)#logging trap
+GBR(config)#logging userinfo
+GBR(config)#service timestamps log datetime msec
+
+GBR(config)#ntp server 172.16.3.194
+GBR(config)#ntp trusted-key 2
+GBR(config)#ntp authentication-key 2 md5 cisco123
+GBR(config)#ntp update-calendar
+
+GBR(config)#router rip
+GBR(config-router)#version 2
+GBR(config-router)#network 172.16.2.0
+GBR(config-router)#network 172.16.1.0
+GBR(config-router)#network 172.17.2.0
+GBR(config-router)#network 172.17.3.0
+GBR(config-router)#no auto-summary
+GBR(config-router)#exit
+
+GBR(config)#ip route 172.16.3.64 255.255.255.192 100.100.100.9 121
+GBR(config)#ip route 172.16.2.128 255.255.255.128 100.100.100.9 121
+GBR(config)#ip route 172.16.3.128 255.255.255.192 100.100.100.9 121
+GBR(config)#ip route 172.16.4.32 255.255.255.224 100.100.100.9 121
+GBR(config)#ip route 172.16.4.0 255.255.255.224 100.100.100.9 121
+GBR(config)#ip route 172.16.4.64 255.255.255.224 100.100.100.9 121
+GBR(config)#ip route 172.16.4.96 255.255.255.240 100.100.100.9 121
+GBR(config)#ip route 172.16.3.0 255.255.255.192 100.100.100.9 121
+GBR(config)#ip route 172.16.3.192 255.255.255.192 100.100.100.9 121
+GBR(config)#ip route 172.16.0.0 255.255.255.0 100.100.100.9 121
+GBR(config)#ip route 100.100.100.4 255.255.255.252 100.100.100.9 121
+GBR(config)#ip route 172.16.4.112 255.255.255.252 100.100.100.9 121
+GBR(config)#ip route 172.16.4.116 255.255.255.252 100.100.100.9 121
+GBR(config)#ip route 100.100.100.0 255.255.255.0 100.100.100.9 121
+
+GBR(config)#interface tunnel 1
+GBR(config-if)#ip address 172.17.2.2 255.255.255.252
+GBR(config-if)#tunnel source Serial0/2/0
+GBR(config-if)#tunnel destination 100.100.100.6
+GBR(config-if)#no shutdown
+GBR(config-if)#exit
+
+GBR(config)#interface tunnel 2
+GBR(config-if)#ip address 172.17.3.2 255.255.255.252
+GBR(config-if)#tunnel source Serial0/2/0
+GBR(config-if)#tunnel destination 100.100.100.2
+GBR(config-if)#no shutdown
+GBR(config-if)#exit
+
+GBR(config)#access-list 101 remark Every Branchs network users cannot ping server network But they can access all services
+GBR(config)#access-list 101 deny icmp any 172.16.3.192 0.0.0.63 echo
+GBR(config)#access-list 101 deny icmp any 172.16.0.0 0.0.0.255 echo
+GBR(config)#access-list 101 permit ip any any
+
+GBR(config)#interface GigaBitEthernet0/0/0
+GBR(config-if)#ip access-group 101 in
+GBR(config-if)#exit
+
+GBR(config)#interface GigaBitEthernet0/0/1
+GBR(config-if)#ip access-group 101 in
+GBR(config-if)#exit
+
+GBR#copy running-config startup-config
+GBR#copy startup-config tftp
